@@ -1,0 +1,40 @@
+/**
+ * v2.16 任务按钮样式优化（v2.21 清理：去掉 emoji 图标与失效的 nth-child/.danger 配色覆盖，
+ * 按钮配色统一回归 sidepanel.css 的 .btn / .btn.primary / .btn.secondary / .btn.ghost-danger）
+ */
+
+/* 任务操作按钮组间距 */
+.task-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.task-actions .btn {
+  flex: 1;
+  min-height: 48px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+/* 禁用状态优化 */
+.task-actions .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* 响应式：小屏幕下堆叠 */
+@media (max-width: 660px) {
+  .task-actions {
+    flex-direction: column;
+  }
+
+  .task-actions .btn {
+    width: 100%;
+  }
+}

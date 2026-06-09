@@ -1,0 +1,328 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>AI 书签整理</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+  <link rel="stylesheet" href="v2.16-button-style-patch.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div>
+          <h1>AI 书签整理</h1>
+          <p>本地优先 · 可回滚的 AI 书签整理</p>
+        </div>
+      </div>
+      
+    </header>
+
+    <div class="status-row">
+      <span class="live-dot"></span>
+      <span id="topStatus">本地服务已就绪</span>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="overview">概览</button>
+      <button class="tab" data-tab="logs">实时日志 <span class="tab-dot"></span></button>
+      <button class="tab" data-tab="settings">模型配置</button>
+    </nav>
+
+    <main>
+      <section id="tab-overview" class="tab-panel active">
+        <section class="card">
+          <div class="overview-shell">
+            <div class="overview-hero">
+              <div>
+                <h2>书签整理任务</h2>
+                <p>选择整理范围，扫描书签，生成分类结果后执行整理</p>
+              </div>
+              <div class="overview-hero-actions">
+                <span id="overviewStatus" class="compact-status">未开始</span>
+                <div id="new-classification-wrapper" style="display: none;">
+                  <button id="new-classification-btn" class="mini-btn">开始新分类</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="overview-section">
+              <div class="mode-selector compact">
+                <label class="mode-option">
+                  <input type="radio" name="scan-mode" value="full" checked>
+                  <span class="mode-content">
+                    <strong>全量分类</strong>
+                    <small>扫描并分类所有书签</small>
+                  </span>
+                </label>
+                <label class="mode-option">
+                  <input type="radio" name="scan-mode" value="folder">
+                  <span class="mode-content">
+                    <strong>按书签夹分类</strong>
+                    <small>只在所选书签夹内部整理</small>
+                  </span>
+                </label>
+              </div>
+
+              <div id="folder-selector" class="folder-selector inline" style="display: none;">
+                <div class="folder-selector-inner">
+                  <select id="target-folder-select" class="folder-select">
+                    <option value="">-- 选择书签夹 --</option>
+                  </select>
+                  <button id="refresh-folders-btn" class="btn-icon refresh-icon" title="更新书签夹列表" aria-label="更新书签夹列表">↻</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="overview-section">
+              <div class="action-grid two-actions primary-actions">
+                <button id="scanToggleBtn" class="btn">开始或继续扫描</button>
+                <button id="classifyToggleBtn" class="btn primary">智能整理分类</button>
+              </div>
+            </div>
+
+            <div class="overview-section status-section">
+              <div class="status-copy">
+                <div class="status-line">
+                  <span class="status-label">当前状态</span>
+                  <span id="statusText">未开始</span>
+                </div>
+                <p id="statusHint" class="status-hint">请选择整理范围并开始扫描。</p>
+              </div>
+              <div class="progress-block compact">
+                <div class="progress-meta">
+                  <span class="progress-caption">任务进度</span>
+                  <span id="progressText">0%</span>
+                </div>
+                <div class="progress"><div id="progressBar"></div></div>
+              </div>
+            </div>
+
+            <div class="overview-section">
+              <div class="task-actions refined">
+                <button id="applyBtn" class="btn primary" disabled>执行整理</button>
+                <button id="reclassifyPendingBtn" class="btn secondary" disabled>处理待确认</button>
+                <button id="rollbackBtn" class="btn ghost-danger" disabled>回滚</button>
+              </div>
+            </div>
+
+            <div class="overview-section">
+              <div class="stats-inline">
+                <div class="stat-pill"><span class="stat-key">已扫描</span><strong id="statScanned">0</strong></div>
+                <div class="stat-pill success"><span class="stat-key">可整理</span><strong id="statAuto">0</strong></div>
+                <div class="stat-pill warning"><span class="stat-key">待确认</span><strong id="statReview">0</strong></div>
+                <div class="stat-pill"><span class="stat-key">域名</span><strong id="statDomains">0</strong></div>
+              </div>
+
+              <div class="domain-strip refined">
+                <div class="domain-strip-title">来源概览</div>
+                <div id="domainChips" class="chip-row empty">暂无域名统计</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head horizontal">
+            <div>
+              <h2>分类体系预览</h2>
+              <p>AI 自动生成的分类结构，点击分类名称可直接修改</p>
+            </div>
+          </div>
+
+          <div id="taxonomyBox" class="taxonomy-chips empty hidden">暂无分类体系。请先扫描书签，再智能整理分类。</div>
+          <div id="taxonomyPreviewTree" class="taxonomy-preview-tree empty">暂无分类预览。</div>
+        </section>
+
+        <section class="card">
+          <div class="section-head horizontal">
+            <div>
+              <h2>整理结果预览</h2>
+              <p>查看书签即将移动到的目标位置和重命名建议</p>
+            </div>
+          </div>
+          <div id="planSummary" class="summary empty">暂无计划</div>
+          <div id="planTableWrap" class="table-wrap empty">完成智能整理分类后，这里将显示详细的整理计划。</div>
+        </section>
+
+        <section class="card">
+          <div class="section-head horizontal">
+            <div>
+              <h2>最终结构预览（执行前）</h2>
+              <p>预览整理后的书签文件夹结构，确认无误后即可执行</p>
+            </div>
+            <div class="tree-tools">
+              <input id="treeSearch" class="tree-search" placeholder="搜索书签树" />
+              <button id="expandTreeBtn" class="mini-btn">刷新</button>
+            </div>
+          </div>
+          <div id="bookmarkTreePreview" class="tree-preview empty">完成智能整理分类后，这里将展示整理后的书签结构树。</div>
+        </section>
+      </section>
+
+      <section id="tab-logs" class="tab-panel">
+        <section class="card logs-card">
+          <div class="section-head horizontal">
+            <div>
+              <h2>实时日志</h2>
+              <p>扫描、AI 调用、失败重试、执行和回滚记录</p>
+            </div>
+            <div class="plan-actions">
+              <button id="clearLogBtn" class="mini-btn">清空显示</button>
+              <button id="copyLogBtn" class="mini-btn">复制日志</button>
+            </div>
+          </div>
+          <div class="log-filter-row">
+            <span class="pill success">扫描日志</span>
+            <span class="pill">AI 调用</span>
+            <span class="pill">错误重试</span>
+            <span class="pill">执行记录</span>
+          </div>
+          <pre id="logBox"></pre>
+        </section>
+      </section>
+
+      <section id="tab-settings" class="tab-panel">
+        <section class="card settings-card">
+          <div class="section-head">
+            <div>
+              <h2>模型配置</h2>
+              <p>支持 OpenAI 协议网关，可测试连接并保存到本地</p>
+            </div>
+            <span id="connectionStatus" class="compact-status">未测试</span>
+          </div>
+
+          <div class="form-grid">
+            <label class="span-2"><span>Base URL</span><input id="baseUrl" placeholder="https://api.openai.com/v1 或 http://localhost:11434/v1" /></label>
+            <label class="span-2"><span>API Key</span><div class="input-affix"><input id="apiKey" type="password" placeholder="sk-... / 你的网关 key" /><button type="button" id="toggleKeyBtn" class="ghost-icon text-toggle-btn">显示</button></div></label>
+            <label><span>Model</span><input id="model" placeholder="例如 gpt-4.1-mini / mimo-v2.5 / deepseek-chat" /></label>
+            <label><span>Batch Size</span><input id="batchSize" type="number" min="5" max="80" step="5" /></label>
+            <label><span>自动执行阈值</span><input id="threshold" type="number" min="0" max="1" step="0.05" /></label>
+            <label><span>分类策略</span>
+              <select id="classificationStrategy">
+                <option value="conservative">保守：不确定就待确认</option>
+                <option value="balanced">平衡：60% 把握就归类</option>
+                <option value="aggressive">积极：尽量归类，待确认最少</option>
+              </select>
+              <small class="field-hint">建议使用“积极”，减少大量待确认</small>
+            </label>
+            <label><span>扫描批大小</span><input id="scanChunkSize" type="number" min="50" max="1000" step="50" /></label>
+
+            <label class="hidden"><span>推荐一级分类数量</span><input id="topCategoryCount" type="number" min="3" max="20" step="1" /><small class="field-hint">AI 会尽量按这个数量生成一级书签夹</small></label>
+            <label><span>重复书签处理</span>
+              <select id="dedupeMode">
+                <option value="url">按 URL 去重</option>
+                <option value="domain_title">按域名 + 标题去重</option>
+                <option value="none">不去重</option>
+              </select><small class="field-hint">去重仅用于智能分类，不会删除原书签</small>
+            </label>
+            <label><span>低置信度增强分类</span>
+              <select id="enableUrlEnrichment">
+                <option value="true">开启：访问链接补充页面信息</option>
+                <option value="false">关闭</option>
+              </select>
+              <small class="field-hint">对待确认/低置信度书签，尝试读取网页标题、描述、H1/H2 后再次分类</small>
+            </label>
+            <label><span>增强分类数量上限</span>
+              <input id="enrichmentLimit" type="number" min="5" max="200" step="5" />
+              <small class="field-hint">避免一次访问过多链接，建议 30-80</small>
+            </label>
+            <label><span>链接访问并发数</span>
+              <input id="enrichmentConcurrency" type="number" min="1" max="6" step="1" />
+              <small class="field-hint">建议 2-3，过高可能触发网站限制</small>
+            </label>
+            <label><span>页面信息缓存</span>
+              <select id="enablePageCache">
+                <option value="true">开启：避免重复访问相同链接</option>
+                <option value="false">关闭</option>
+              </select>
+            </label>
+            <label class="span-2"><span>结构化输出模式</span>
+              <select id="responseFormatMode">
+                <option value="json_schema">json_schema 严格模式（OpenAI 官方优先）</option>
+                <option value="json_object">json_object 兼容模式</option>
+                <option value="none">不发送 response_format（最兼容，但稳定性较弱）</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-actions">
+            <button id="saveSettingsBtn" class="btn primary">保存配置</button>
+            <button id="testConnectionBtn" class="btn">测试连接</button>
+            <button id="backupBookmarksBtn" class="btn" title="将当前全部书签导出为标准 HTML 文件，可在浏览器中重新导入">备份书签</button>
+          </div>
+          <div class="notice">
+            升级方式：不要删除扩展。用新版代码覆盖旧插件文件夹后，在 chrome://extensions 点击“重新加载”。这样 extension id 不变，本地配置和 IndexedDB 会保留。
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="app-footer"></footer>
+  </div>
+
+  <!-- v2.0 新模块：识别增强 -->
+  <script src="ai-classifier-keywords.js"></script>
+  <script src="ai-classifier-prefilter.js"></script>
+  <script src="ai-prompts-v2.js"></script>
+
+  <!-- 主逻辑 -->
+  <script src="sidepanel.js"></script>
+
+  <!-- v2.0 集成补丁：增强原有函数 -->
+  <script src="v2-integration-patch.js"></script>
+
+  <!-- v2.1 UI和功能改进补丁 -->
+  <script src="v2.1-improvements-patch.js"></script>
+
+  <!-- v2.2 保留分类体系补丁 -->
+  <script src="v2.2-keep-taxonomy-patch.js"></script>
+
+  <!-- v2.3 重新智能分类补丁 -->
+  <script src="v2.3-reclassify-patch.js"></script>
+
+  <!-- v2.4 UI 布局优化补丁 - 部分功能已合并到 v2.10 -->
+  <!-- <script src="v2.4-ui-optimization-patch.js"></script> -->
+
+  <!-- v2.5 允许失败状态执行补丁 - 已合并到 v2.10 -->
+  <!-- <script src="v2.5-allow-failed-execute-patch.js"></script> -->
+
+  <!-- v2.6 回滚和执行优化补丁 - setButtons 部分已合并到 v2.10 -->
+  <script src="v2.6-rollback-execute-patch.js"></script>
+
+  <!-- v2.7 UI 文案和样式优化补丁 -->
+  <script src="v2.7-ui-text-style-patch.js"></script>
+
+  <!-- v2.8 自动补全一级分类补丁 -->
+  <script src="v2.8-auto-complete-categories-patch.js"></script>
+
+  <!-- v2.9 执行优化补丁 -->
+  <script src="v2.9-execution-cleanup-patch.js"></script>
+
+  <!-- v2.10 统一补丁整合 - 解决 setButtons 冲突 -->
+  <script src="v2.10-unified-patch.js"></script>
+
+  <!-- v2.11 暂停后重新扫描补丁 -->
+  <script src="v2.11-rescan-after-pause-patch.js"></script>
+
+  <!-- v2.12 扫描行为优化补丁 -->
+  <script src="v2.12-rescan-behavior-patch.js"></script>
+
+  <!-- v2.13 整理待确认进度优化补丁 -->
+  <script src="v2.13-reclassify-progress-patch.js"></script>
+
+  <!-- v2.14 执行逻辑优化补丁 - 已被 v2.17 替代 -->
+  <!-- <script src="v2.14-execution-cleanup-bookmarks-bar.js"></script> -->
+
+  <!-- v2.15 回滚清理优化补丁 -->
+  <script src="v2.15-rollback-cleanup-patch.js"></script>
+
+  <!-- v2.17 修复书签栏清理检测补丁 - 替代 v2.14 -->
+  <script src="v2.17-fix-bookmarks-bar-cleanup.js"></script>
+
+</body>
+</html>
